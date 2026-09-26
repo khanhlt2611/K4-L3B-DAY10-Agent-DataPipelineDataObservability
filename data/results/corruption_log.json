@@ -1,0 +1,56 @@
+{
+  "before_rows": 24,
+  "scenarios": {
+    "drop_latest_records": {
+      "affected_count": 5,
+      "paper_ids": [
+        "10.21203/rs.3.rs-10489777/v1",
+        "10.70267/aitia.2026482489",
+        "10.21203/rs.3.rs-10349437/v1",
+        "10.54254/2755-2721/2026.36624",
+        "10.36887/2415-8453-2026-3-2"
+      ]
+    },
+    "blank_summary": {
+      "affected_count": 2,
+      "paper_ids": [
+        "10.20944/preprints202608.1849.v1",
+        "10.21203/rs.3.rs-10423755/v1"
+      ]
+    },
+    "inject_noise": {
+      "affected_count": 2,
+      "paper_ids": [
+        "10.3390/knowledge6030022",
+        "10.36948/ijfmr.2026.v08i04.85777"
+      ]
+    },
+    "truncate_title": {
+      "affected_count": 2,
+      "paper_ids": [
+        "10.2118/234689-pa",
+        "10.1007/s10278-026-02086-9"
+      ]
+    },
+    "stale_date": {
+      "affected_count": 6,
+      "paper_ids": [
+        "10.21203/rs.3.rs-9882260/v1",
+        "10.52060/juptik.v4i1.4318",
+        "10.7717/peerj-cs.3882",
+        "10.55041/isjem07213",
+        "10.20944/preprints202604.0339.v1",
+        "10.63125/gseh0k17"
+      ],
+      "new_published_date": "2024-09-26"
+    },
+    "duplicate_rows": {
+      "affected_count": 2,
+      "paper_ids": [
+        "10.20944/preprints202604.0339.v1",
+        "10.63125/gseh0k17"
+      ]
+    }
+  },
+  "after_rows": 21
+}
