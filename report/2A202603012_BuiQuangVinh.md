@@ -95,12 +95,6 @@ uv run python script/run_corruption_flow.py
 - **Cách xác minh sau khi sửa:** Corrupted có 8/21 rows stale, stale ratio khoảng 38.1% nên Freshness FAIL; repaired trở lại 0/24 stale và PASS.
 - **Điều học được:** Corruption test không chỉ cần thay đổi dữ liệu mà phải tạo ra tín hiệu quan sát được và vẫn giữ đúng data contract của pipeline.
 
-Nếu chưa xử lý xong:
-
-- **Phạm vi bị ảnh hưởng:** Không còn blocker mở trong phần Corruption & Integration ở phiên bản hiện tại.
-- **Những gì đã loại trừ:** Baseline artifacts, raw snapshot và evaluation set đã được giữ nguyên để tránh làm sai lệch phép so sánh.
-- **Bước tiếp theo:** Có thể bổ sung automated tests/CI và ablation test từng corruption để đo tác động riêng.
-
 ## 7. Hiểu biết về luồng end-to-end
 
 Giải thích ngắn gọn bằng lời của bạn:
@@ -141,7 +135,7 @@ Hoàn thành hai chuỗi nguyên nhân–bằng chứng sau:
 
 Corruption nào ảnh hưởng rõ nhất và vì sao?
 
-`drop_latest_records` có tác động trực tiếp nhất tới retrieval vì có thể xóa document ground truth khỏi index; `blank_summary`, noise và truncate title làm giảm chất lượng context/embedding. Tuy nhiên suite hiện chạy đồng thời sáu corruption nên chưa thể kết luận chính xác mức đóng góp riêng của từng loại nếu chưa chạy ablation test.
+Chưa thể kết luận corruption nào ảnh hưởng mạnh nhất vì cả 6 scenario được chạy đồng thời. `drop_latest_records` có cơ chế tác động trực tiếp tới retrieval do có thể loại document khỏi index, còn blank summary/noise/truncate title làm giảm thông tin context; muốn xác định mức ảnh hưởng riêng cần chạy ablation test từng scenario.
 
 Kết quả nào khác với kỳ vọng ban đầu?
 

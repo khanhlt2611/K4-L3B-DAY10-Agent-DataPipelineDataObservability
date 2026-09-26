@@ -54,7 +54,7 @@ Crossref API (hoặc snapshot offline data/raw/crossref_response.json)
 | ----------------- | -------------- | -------------------------- | ------------------------ | -------------- |
 | Ingestion         | Crossref REST API / snapshot offline | Fetch với retry 3 lần (backoff 2ⁿ giây) khi 429/503; parse DOI/title/abstract/authors/dates; fallback offline | `data/raw/crossref_response.json`, `data/raw/crossref_records.json` | Trần Cao Quốc Dinh |
 | Cleaning          | `list[PaperRecord]` | Loại JATS/XML, chuẩn hóa khoảng trắng, parse ngày → ISO, tính `age_days`, khử trùng lặp, sinh `text_for_embedding` 5 phần | `data/clean/papers_clean.csv`, `data/clean/papers_clean.json` | Lê Trọng Khánh |
-| Embedding/index   | Clean DataFrame | Embed `text_for_embedding` bằng `all-MiniLM-L6-v2`; nạp vào ChromaDB (cosine similarity) | `data/chroma/` (3 collections), `data/embeddings/*.json` | Võ Huy Hoàng |
+| Embedding/index   | Clean DataFrame | Embed `text_for_embedding` bằng `all-MiniLM-L6-v2`; nạp vào ChromaDB (cosine similarity) | `data/chroma/` (3 collections), `data/embeddings/*.json` | Bùi Quang Vinh (tích hợp vào pipeline) |
 | Evaluation        | Clean DataFrame + ChromaDB index | Sinh 10 câu hỏi 4 loại; đo Hit Rate, Token F1, Judge Score bằng mock LLM | `data/eval/test_set.json`, `data/results/*_metrics.json`, `data/results/*_answers.json` | Lê Trọng Khánh + Bùi Quang Vinh |
 | Observability     | Clean DataFrame | GX 1.x: 5 expectations (row count, null, unique, summary length); Freshness SLA: age_days > 180 | `data/quality/*_quality_report.json`, `data/quality/*_freshness_report.json` | Võ Huy Hoàng |
 | Corruption/repair | Clean DataFrame | 6 kịch bản làm bẩn; repair bằng cách tái tạo từ raw snapshot | `data/clean/papers_clean_corrupted.*`, `data/clean/papers_clean_repaired.*`, `data/results/corruption_log.json` | Bùi Quang Vinh |
@@ -70,7 +70,7 @@ Crossref API (hoặc snapshot offline data/raw/crossref_response.json)
 | `LLM_MODEL`                | `mock`              |
 | Embedding model              | `sentence-transformers/all-MiniLM-L6-v2` |
 | Số lượng Crossref records | 24                  |
-| Retrieval `top_k`           | 5                   |
+| Retrieval `top_k`           | 4                   |
 | Freshness threshold          | 180 days            |
 | Random seed, nếu có        | N/A — test set chọn theo sort + stride, không dùng random |
 
@@ -172,7 +172,7 @@ Title: {title} | Authors: {authors_joined} | Categories: {categories_joined} | P
 | Ground-truth document ID                 | `paper_id` từ clean dataset; mỗi câu chứa `ground_truth_doc_ids` |
 | Embedding model                          | `sentence-transformers/all-MiniLM-L6-v2` |
 | Vector store/collection                  | ChromaDB persistent (cosine), collections: `papers-baseline`, `papers-corrupted`, `papers-repaired` |
-| Retrieval `top_k`                       | 5                             |
+| Retrieval `top_k`                       | 4                             |
 | LLM provider/model                       | `mock` (deterministic) |
 | Test set dùng chung cho ba trạng thái | `data/eval/test_set.json` — cùng một file không thay đổi |
 
@@ -196,7 +196,7 @@ Test set được giữ nguyên khi đánh giá baseline, corrupted và repaired
 
 | Metric                 |       Giá trị | Diễn giải                             |
 | ---------------------- | --------------: | --------------------------------------- |
-| `retrieval_hit_rate` |          1.000 | Agent tìm đúng document trong top-5 cho cả 10/10 câu hỏi |
+| `retrieval_hit_rate` |          1.000 | Agent tìm đúng document trong top-4 cho cả 10/10 câu hỏi |
 | `mean_token_f1`      |          1.000 | Câu trả lời của mock LLM khớp hoàn toàn với ground truth |
 | `judge_accuracy`     |          1.000 | Judge đánh giá đúng 100% |
 | `mean_judge_score`   |              5 | Điểm trung bình tuyệt đối (thang 5) |
@@ -208,11 +208,11 @@ Test set được giữ nguyên khi đánh giá baseline, corrupted và repaired
 
 | Check        | Quality dimension | Ngưỡng/kỳ vọng | Kết quả baseline      | Bằng chứng |
 | ------------ | ----------------- | ------------------ | ----------------------- | ------------ |
-| `expect_table_row_count_to_be_between` | Completeness | min=10, max=100 | PASS — 24 rows | `data/quality/baseline_quality_report.json` |
+| `expect_table_row_count_to_be_between` | Completeness | min=24, max=24 | PASS — 24 rows | `data/quality/baseline_quality_report.json` |
 | `expect_column_values_to_not_be_null` (`paper_id`) | Completeness | 0 null | PASS — 0 unexpected | `data/quality/baseline_quality_report.json` |
 | `expect_column_values_to_not_be_null` (`title`) | Completeness | 0 null | PASS — 0 unexpected | `data/quality/baseline_quality_report.json` |
 | `expect_column_values_to_be_unique` (`paper_id`) | Uniqueness | 0 duplicate | PASS — 0 unexpected | `data/quality/baseline_quality_report.json` |
-| `expect_column_value_lengths_to_be_between` (`summary`) | Validity | min=10 chars | PASS — 0 unexpected | `data/quality/baseline_quality_report.json` |
+| `expect_column_value_lengths_to_be_between` (`summary`) | Validity | min=20 chars | PASS — 0 unexpected | `data/quality/baseline_quality_report.json` |
 
 ### Freshness
 
@@ -231,8 +231,8 @@ Test set được giữ nguyên khi đánh giá baseline, corrupted và repaired
 | ------------------ | ---------- | ---------------------: | ------------------------ | --------------------- | -------------- |
 | `drop_latest_records` | Xóa 5 records có `published` mới nhất | 5 | Row count giảm → `expect_table_row_count_to_be_between` FAIL | Row count 24→19 (trước duplicate); góp phần FAIL expectation row count | Tái tạo từ raw snapshot |
 | `blank_summary`    | Set `summary=""` cho 2 records | 2 | `expect_column_value_lengths_to_be_between` FAIL | 2 summary rỗng → FAIL length check; retrieval mất context | Tái tạo từ raw snapshot |
-| `inject_noise`     | Thêm ký tự rác vào `title`/`summary` | 2 | Embedding shift → retrieval Hit Rate giảm | Góp phần Hit Rate sụt −0.2 | Tái tạo từ raw snapshot |
-| `truncate_title`   | Cắt ngắn `title` còn ≤10 ký tự | 2 | Embedding quality giảm; agent trả lời sai | Góp phần Token F1 sụt −0.189 | Tái tạo từ raw snapshot |
+| `inject_noise`     | Thay `summary` của 2 records bằng chuỗi noise | 2 | Embedding/context bị nhiễu → retrieval có thể giảm | Góp phần làm suy giảm kết quả corrupted | Tái tạo từ raw snapshot |
+| `truncate_title`   | Cắt `title` còn 5 ký tự (hoặc `BAD`) | 2 | Title/context bị mất thông tin → retrieval/answer có thể giảm | Góp phần làm suy giảm kết quả corrupted | Tái tạo từ raw snapshot |
 | `stale_date`       | Set `published=2024-09-26` cho 6 records | 6 | Freshness FAIL: stale_ratio vượt 25% | stale_rows=8/21 (38.1%) → `is_fresh=false` | Tái tạo từ raw snapshot |
 | `duplicate_rows`   | Duplicate 2 records | 2 | `expect_column_values_to_be_unique` FAIL | 4/21 rows là duplicate (19%) → FAIL uniqueness | Tái tạo từ raw snapshot |
 
@@ -253,7 +253,7 @@ Repair đảm bảo tính toàn vẹn bằng cách tái tạo hoàn toàn từ `
 
 **Kết luận nhân quả có artifact hỗ trợ:**
 
-1. `drop_latest_records` (−5 records) + `inject_noise` + `truncate_title` (gây embedding shift) → `retrieval_hit_rate` giảm từ 1.0 xuống 0.8 (`corrupted_metrics.json`) → agent không tìm được 2/10 document → `judge_accuracy` giảm tương ứng xuống 0.8.
+1. Sau khi áp dụng đồng thời 6 corruption, Quality Gate/Freshness chuyển sang FAIL và `retrieval_hit_rate` giảm từ 1.0 xuống 0.8, `judge_accuracy` giảm xuống 0.8. Do các corruption được chạy cùng lúc, báo cáo chỉ kết luận được tác động tổng hợp, không quy riêng mức giảm cho một scenario.
 
 2. Repair từ raw snapshot → re-index `papers-repaired` collection với 24 records sạch → quality checks pass 5/5, `is_fresh=true`, `repaired_metrics.json` phục hồi hoàn toàn về baseline (Hit Rate 1.0, Token F1 1.0). Điều này xác nhận corruption không làm hỏng raw snapshot và repair pipeline hoạt động đúng.
 
