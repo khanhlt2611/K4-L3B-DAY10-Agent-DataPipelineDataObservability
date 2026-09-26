@@ -15,8 +15,8 @@
 | --: | --- | --- | --- | --- |
 | 1 | Trần Cao Quốc Dinh | 2A202602939 | Source & Environment Owner | `src/ingestion/crossref.py`, setup `.env` & `pyproject.toml`, `data/raw/crossref_response.json`, `data/raw/crossref_records.json` |
 | 2 | Lê Trọng Khánh | 2A202602941 | Data Model & Evaluation-Set Owner | `src/ingestion/cleaning.py`, `src/evaluation/testset.py`, `data/clean/papers_clean.*`, `data/eval/test_set.json` |
-| 3 | (Thành viên 3) | — | Observability Owner | `src/observability/quality.py`, `src/observability/reporting.py`, `data/quality/*` |
-| 4 | (Thành viên 4) | — | Corruption & Integration Owner | `src/ingestion/corruption.py`, `src/pipelines/phase1.py`, `src/pipelines/corruption_flow.py`, `data/reports/*`, `data/results/*` |
+| 3 | Võ Huy Hoàng | 2A202602548 | Observability Owner | `src/observability/quality.py`, `src/observability/reporting.py`, `data/quality/*` |
+| 4 | Bùi Quang Vinh | 2A202603012 | Corruption & Integration Owner | `src/ingestion/corruption.py`, `src/pipelines/phase1.py`, `src/pipelines/corruption_flow.py`, `data/reports/*`, `data/results/*` |
 
 ## 2. Tóm tắt kết quả
 
@@ -54,11 +54,11 @@ Crossref API (hoặc snapshot offline data/raw/crossref_response.json)
 | ----------------- | -------------- | -------------------------- | ------------------------ | -------------- |
 | Ingestion         | Crossref REST API / snapshot offline | Fetch với retry 3 lần (backoff 2ⁿ giây) khi 429/503; parse DOI/title/abstract/authors/dates; fallback offline | `data/raw/crossref_response.json`, `data/raw/crossref_records.json` | Trần Cao Quốc Dinh |
 | Cleaning          | `list[PaperRecord]` | Loại JATS/XML, chuẩn hóa khoảng trắng, parse ngày → ISO, tính `age_days`, khử trùng lặp, sinh `text_for_embedding` 5 phần | `data/clean/papers_clean.csv`, `data/clean/papers_clean.json` | Lê Trọng Khánh |
-| Embedding/index   | Clean DataFrame | Embed `text_for_embedding` bằng `all-MiniLM-L6-v2`; nạp vào ChromaDB (cosine similarity) | `data/chroma/` (3 collections), `data/embeddings/*.json` | (Thành viên 3) |
-| Evaluation        | Clean DataFrame + ChromaDB index | Sinh 10 câu hỏi 4 loại; đo Hit Rate, Token F1, Judge Score bằng mock LLM | `data/eval/test_set.json`, `data/results/*_metrics.json`, `data/results/*_answers.json` | Lê Trọng Khánh + (Thành viên 4) |
-| Observability     | Clean DataFrame | GX 1.x: 5 expectations (row count, null, unique, summary length); Freshness SLA: age_days > 180 | `data/quality/*_quality_report.json`, `data/quality/*_freshness_report.json` | (Thành viên 3) |
-| Corruption/repair | Clean DataFrame | 6 kịch bản làm bẩn; repair bằng cách tái tạo từ raw snapshot | `data/clean/papers_clean_corrupted.*`, `data/clean/papers_clean_repaired.*`, `data/results/corruption_log.json` | (Thành viên 4) |
-| Orchestration     | Settings | Chạy các bước theo thứ tự phụ thuộc; xuất báo cáo | `data/reports/phase1_report.md`, `data/reports/corruption_report.md` | (Thành viên 4) |
+| Embedding/index   | Clean DataFrame | Embed `text_for_embedding` bằng `all-MiniLM-L6-v2`; nạp vào ChromaDB (cosine similarity) | `data/chroma/` (3 collections), `data/embeddings/*.json` | Võ Huy Hoàng |
+| Evaluation        | Clean DataFrame + ChromaDB index | Sinh 10 câu hỏi 4 loại; đo Hit Rate, Token F1, Judge Score bằng mock LLM | `data/eval/test_set.json`, `data/results/*_metrics.json`, `data/results/*_answers.json` | Lê Trọng Khánh + Bùi Quang Vinh |
+| Observability     | Clean DataFrame | GX 1.x: 5 expectations (row count, null, unique, summary length); Freshness SLA: age_days > 180 | `data/quality/*_quality_report.json`, `data/quality/*_freshness_report.json` | Võ Huy Hoàng |
+| Corruption/repair | Clean DataFrame | 6 kịch bản làm bẩn; repair bằng cách tái tạo từ raw snapshot | `data/clean/papers_clean_corrupted.*`, `data/clean/papers_clean_repaired.*`, `data/results/corruption_log.json` | Bùi Quang Vinh |
+| Orchestration     | Settings | Chạy các bước theo thứ tự phụ thuộc; xuất báo cáo | `data/reports/phase1_report.md`, `data/reports/corruption_report.md` | Bùi Quang Vinh |
 
 ## 4. Cách tái hiện kết quả
 
